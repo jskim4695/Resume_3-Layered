@@ -28,7 +28,7 @@ model Resume {
   title String @map("title")
   author String @map("author")
   content String @db.Text @map("content")
-  status String @default("APPLY") @map("status")
+  status ResumeStatus @default(APPLY) @map("status")
   createdAt DateTime @default(now()) @map("createdAt")
 
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
@@ -36,11 +36,11 @@ model Resume {
   @@map("Resume")
 }
 
-// enum ResumeStatus {
-//   APPLY
-//   DROP
-//   PASS
-//   INTERVIEW1
-//   INTERVIEW2
-//   FINAL_PASS
-// }
+enum ResumeStatus {
+  APPLY
+  DROP
+  PASS
+  INTERVIEW1
+  INTERVIEW2
+  FINAL_PASS
+}

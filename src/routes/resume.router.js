@@ -89,6 +89,12 @@ router.patch("/resume/:resumeId", authMiddleware, async (req, res, next) => {
       return res.status(403).json({ message: "이력서 수정 권한이 없습니다." });
     }
 
+    // 유효한 enum 값인지 확인
+    const statusValues = ["APPLY", "DROP", "PASS", "INTERVIEW1", "INTERVIEW2", "FINAL_PASS"];
+    if (!statusValues.includes(status)) {
+      return res.status(400).json({ message: "유효하지 않은 이력서 상태 값입니다." });
+    }
+
     const updatedResume = await prisma.resume.update({
       where: { resumeId: +resumeId },
       data: { title, content, status }
