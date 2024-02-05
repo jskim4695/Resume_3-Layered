@@ -11,20 +11,36 @@ router.post("/sign-up", async (req, res, next) => {
   try {
     const { email, password, checkPw, name } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ success: false, message: "이메일은 필수값입니다." });
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: "비밀번호는 필수값입니다." });
+    }
+
+    if (!checkPw) {
+      return res.status(400).json({ success: false, message: "비밀번호 확인은 필수값입니다." });
+    }
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: "이름은 필수값입니다." });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: "비밀번호는 최소 6자 이상입니다." });
+    }
+
+    if (password !== checkPw) {
+      return res.status(400).json({ success: false, message: "비밀번호와 비밀번호 확인값이 일치하지 않습니다." });
+    }
+
     const isExistUser = await prisma.users.findFirst({
       where: { email }
     });
 
     if (isExistUser) {
-      return res.status(409).json({ message: "이미 존재하는 이메일입니다." });
-    }
-
-    if (password !== checkPw) {
-      return res.status(400).json({ message: "비밀번호 확인이 일치하지 않습니다." });
-    }
-
-    if (password.length < 6) {
-      return res.status(401).json({ message: "비밀번호는 최소 6글자 이상이어야 합니다." });
+      return res.status(409).json({ message: "사용할 수 없는 이메일입니다." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -33,7 +49,6 @@ router.post("/sign-up", async (req, res, next) => {
       data: {
         email,
         password: hashedPassword,
-        checkPw: hashedPassword,
         name
       }
     });
@@ -56,27 +71,21 @@ router.post("/sign-in", async (req, res, next) => {
   if (!(await bcrypt.compare(password, user.password)))
     return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
 
-  const token = jwt.sign({ userId: user.userId }, "custom-secret-key", { expiresIn: "12h" });
+  const accessToken = jwt.sign({ userId: user.userId }, "custom-secret-key", { expiresIn: "12h" });
 
-  res.cookie("authorization", `Bearer ${token}`);
-  return res.status(200).json({ message: "로그인에 성공하였습니다." });
+  return res.json({
+    accessToken
+  });
 });
 
 /** 사용자 조회 API **/
 router.get("/users", authMiddleware, async (req, res, next) => {
-  const { userId } = req.user;
+  const user = res.locals.user;
 
-  const user = await prisma.users.findFirst({
-    where: { userId: +userId },
-    select: {
-      userId: true,
-      email: true,
-      name: true,
-      createdAt: true
-    }
+  return res.json({
+    email: user.email,
+    name: user.name
   });
-
-  return res.status(200).json({ data: user });
 });
 
 export default router;

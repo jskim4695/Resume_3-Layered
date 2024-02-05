@@ -3,26 +3,32 @@ import { prisma } from "../utils/prisma/index.js";
 
 export default async function (req, res, next) {
   try {
-    const { authorization } = req.cookies;
+    //header에서 accessToken 가져오기
+    const authorization = req.headers.authorization;
     if (!authorization) throw new Error("요청한 사용자의 토큰이 존재하지 않습니다.");
 
-    const [tokenType, token] = authorization.split(" ");
+    // 인증방식이 올바른가 - jwt(Bearer)
+    const [tokenType, tokenValue] = authorization.split(" ");
     if (tokenType !== "Bearer") throw new Error("토큰 타입이 Bearer 형식이 아닙니다.");
 
-    const decodedToken = jwt.verify(token, "custom-secret-key");
-    const userId = decodedToken.userId;
+    // 12h의 유효기간이 남아있는가?
+    const token = jwt.verify(tokenValue, "custom-secret-key");
 
     const user = await prisma.users.findFirst({
-      where: { userId: +userId }
+      where: { userId: token.userId }
     });
-    if (!user) throw new Error("토큰 사용자가 존재하지 않습니다.");
+    if (!user) {
+      throw new Error("토큰 사용자가 존재하지 않습니다.");
+    }
 
-    req.user = user;
+    // user 정보 담기
+    res.locals.user = user;
+
     next();
   } catch (error) {
-    if (error.name === "TokenExpiredError") return res.status(401).json({ message: "토큰이 만료되었습니다." });
-    if (error.name === "JsonWebTokenError") return res.status(401).json({ message: "토큰이 조작되었습니다." });
-
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 }
