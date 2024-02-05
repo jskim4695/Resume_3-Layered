@@ -95,58 +95,98 @@ router.get("/resume/:resumeId", async (req, res, next) => {
 
 // //** 이력서 수정 API **/
 router.patch("/resume/:resumeId", authMiddleware, async (req, res, next) => {
-  const { resumeId } = req.params;
+  const user = res.locals.user;
   const { title, content, status } = req.body;
-  const userId = req.user.userId;
+  const resumeId = req.params.resumeId;
 
-  try {
-    // 이력서 조회
-    const resume = await prisma.resume.findUnique({
-      where: { resumeId: +resumeId }
+  if (!resumeId) {
+    return res.status(400).json({
+      success: false,
+      message: "resumeId는 필수값입니다."
     });
-
-    if (!resume) {
-      return res.status(404).json({ message: "이력서 조회에 실패하였습니다." });
-    }
-
-    if (resume.userId !== userId) {
-      return res.status(403).json({ message: "이력서 수정 권한이 없습니다." });
-    }
-
-    // 유효한 enum 값인지 확인
-    const statusValues = ["APPLY", "DROP", "PASS", "INTERVIEW1", "INTERVIEW2", "FINAL_PASS"];
-    if (!statusValues.includes(status)) {
-      return res.status(400).json({ message: "유효하지 않은 이력서 상태 값입니다." });
-    }
-
-    const updatedResume = await prisma.resume.update({
-      where: { resumeId: +resumeId },
-      data: { title, content, status }
-    });
-
-    res.status(201).json({ message: "이력서 수정에 성공하였습니다." });
-  } catch (error) {
-    res.status(500).json({ message: "이력서 수정에 실패했습니다." });
   }
+
+  if (!title) {
+    return res.status(400).json({
+      success: false,
+      message: "제목은 필수값입니다."
+    });
+  }
+
+  if (!content) {
+    return res.status(400).json({
+      success: false,
+      message: "자기소개는 필수값입니다."
+    });
+  }
+
+  if (!status) {
+    return res.status(400).json({
+      success: false,
+      message: "상태값은 필수값입니다."
+    });
+  }
+
+  // 이력서 조회
+  const resume = await prisma.resume.findFirst({
+    where: {
+      resumeId: Number(resumeId)
+    }
+  });
+
+  if (!resume) {
+    return res.status(400).json({
+      success: false,
+      message: "존재하지 않는 이력서입니다."
+    });
+  }
+
+  if (resume.userId !== user.userId) {
+    return res.status(400).json({
+      success: false,
+      message: "잘못된 접근입니다."
+    });
+  }
+
+  // 유효한 enum 값인지 확인
+  const statusValues = ["APPLY", "DROP", "PASS", "INTERVIEW1", "INTERVIEW2", "FINAL_PASS"];
+  if (!statusValues.includes(status)) {
+    return res.status(400).json({ message: "유효하지 않은 이력서 상태 값입니다." });
+  }
+
+  // 내가 작성한 이력서이다.
+  await prisma.resume.update({
+    where: { resumeId: +resumeId },
+    data: { title, content, status }
+  });
+
+  res.status(201).end();
 });
 
 // //** 이력서 삭제 API **/
 router.delete("/resume/:resumeId", authMiddleware, async (req, res, next) => {
-  const { resumeId } = req.params;
-  const userId = req.user.userId;
+  const user = res.locals.user;
+  const resumeId = req.params.resumeId;
 
   try {
-    // 이력서 조회
-    const resume = await prisma.resume.findUnique({
-      where: { resumeId: +resumeId }
+    const resume = await prisma.resume.findFirst({
+      where: {
+        resumeId: Number(resumeId)
+      }
     });
 
     if (!resume) {
-      return res.status(404).json({ message: "이력서 조회에 실패하였습니다." });
+      return res.status(400).json({
+        success: false,
+        message: "존재하지 않는 이력서입니다."
+      });
     }
 
-    if (resume.userId !== userId) {
-      return res.status(403).json({ message: "이력서 삭제 권한이 없습니다." });
+    if (resume.userId !== user.userId) {
+      return res.status(400).json({
+        success: false,
+        message: "잘못된 접근입니다."
+      });
     }
 
     await prisma.resume.delete({
