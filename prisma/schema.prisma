@@ -25,7 +25,7 @@ model Resume {
   resumeId Int @id @default(autoincrement()) @map("resumeId")
   userId Int @unique @map("userId")
   title String @map("title")
-  author String @map("author")
+  // author String @map("author")
   content String @db.Text @map("content")
   status String @default("APPLY") @map("status")
   createdAt DateTime @default(now()) @map("createdAt")

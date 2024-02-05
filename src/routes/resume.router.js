@@ -6,42 +6,64 @@ const router = express.Router();
 
 /** 이력서 생성 API **/
 router.post("/resume", authMiddleware, async (req, res, next) => {
-  const { userId } = req.user;
+  const user = res.locals.user;
   const { title, content } = req.body;
-
-  const user = await prisma.users.findUnique({
-    where: {
-      userId: +userId
-    }
-  });
-
-  const author = user.name;
 
   const resume = await prisma.resume.create({
     data: {
-      userId: +userId,
+      userId: user.userId,
       title,
-      author,
       content
     }
   });
 
-  return res.status(201).json({ data: resume });
+  return res.end();
 });
 
 /** 이력서 목록 조회 API **/
 router.get("/resumes", async (req, res, next) => {
+  const orderKey = req.query.orderKey ?? "resumeId";
+  const orderValue = req.query.orderValue ?? "desc";
+
+  if (!["resumeId", "status"].includes(orderKey)) {
+    return res.status(400).json({
+      success: false,
+      message: "orderKey가 올바르지 않습니다."
+    });
+  }
+
+  if (!["asc", "desc"].includes(orderValue.toLowerCase())) {
+    return res.status(400).json({
+      success: false,
+      message: "orderKey가 올바르지 않습니다."
+    });
+  }
+
   const resume = await prisma.resume.findMany({
     select: {
       resumeId: true,
       userId: true,
       title: true,
       content: true,
-      author: true,
+      // author: true,
+      user: {
+        select: {
+          name: true
+        }
+      },
       status: true,
       createdAt: true
       //   updatedAt: true,
-    }
+    },
+    orderBy: [
+      {
+        [orderKey]: orderValue.toLowerCase() // 대괄호로 감싸주면 이름 그대로 들어가는 것이 아니라 변수를 통해서 들어감.
+      }
+    ]
+  });
+  resume.forEach((re) => {
+    re.name = re.user.name;
+    delete re.name;
   });
 
   return res.status(200).json({ data: resume });
@@ -56,13 +78,15 @@ router.get("/resume/:resumeId", async (req, res, next) => {
     },
     select: {
       resumeId: true,
-      userId: true,
       title: true,
       content: true,
-      author: true,
       status: true,
+      user: {
+        select: {
+          name: true
+        }
+      },
       createdAt: true
-      //   updatedAt: true,
     }
   });
 
