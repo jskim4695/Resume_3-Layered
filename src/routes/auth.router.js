@@ -22,7 +22,7 @@ router.post("/token", async (req, res) => {
     return res.status(401).end();
   }
 
-  const newAccessToken = jwt.sign({ userId: user.userId }, "token-Secret-Key", {
+  const newAccessToken = jwt.sign({ userId: user.userId }, "secret-key", {
     expiresIn: "12h",
   });
   const newRefreshToken = jwt.sign({ userId: user.userId }, "resumeToken", {

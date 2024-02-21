@@ -18,7 +18,7 @@ export class ResumeController {
     try {
       const { resumeId } = req.params;
 
-      const resume = await this.resumeService.findResumeById(postId);
+      const resume = await this.resumeService.findResumeById(resumeId);
 
       return res.status(200).json({ data: resume });
     } catch (err) {
@@ -29,7 +29,7 @@ export class ResumeController {
   // 이력서 생성
   createResume = async (req, res, next) => {
     try {
-      const userId = res.locals.user;
+      const userId = res.locals.user.userId;
       const { title, content } = req.body;
 
       const createdResume = await this.resumeService.crateResume(
@@ -47,14 +47,15 @@ export class ResumeController {
   // 이력서 수정
   updateResume = async (req, res, next) => {
     try {
-      const userId = res.locals.user;
-      const { password, title, content } = req.body;
+      const userId = res.locals.user.userId;
+      const resumeId = req.params;
+      const { title, content, status } = req.body;
 
       const updatedResume = await this.resumeService.updateResume(
-        userId,
-        password,
+        resumeId,
         title,
-        content
+        content,
+        status
       );
 
       return res.status(200).json({ data: updatedResume });
@@ -63,15 +64,15 @@ export class ResumeController {
     }
   };
 
-  // 게시글 삭제 api
+  // 이력서 삭제 api
   deleteResume = async (req, res, next) => {
     try {
-      const userId = res.locals.user;
-      const { password } = req.body;
+      const userId = res.locals.user.userId;
+      const { resumeId } = req.params;
 
       const deletedResume = await this.resumeService.deleteResume(
-        postId,
-        password
+        userId,
+        resumeId
       );
 
       return res.status(200).json({ data: deletedResume });
