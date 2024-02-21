@@ -24,9 +24,9 @@ export class UsersController {
     try {
       const { email, password } = req.body;
 
-      const loggedUsers = await this.usersService.loginUsers(email, password);
+      const tokens = await this.usersService.loginUsers(email, password);
 
-      return res.status(200).json({ data: loggedUsers });
+      return res.status(200).json({ tokens });
     } catch (err) {
       next(err);
     }
@@ -34,9 +34,9 @@ export class UsersController {
 
   getUser = async (req, res, next) => {
     try {
-      const userId = res.locals.user;
+      const user = res.locals.user;
 
-      const users = await this.usersService.getUser(userId);
+      const users = await this.usersService.getUser(user.userId);
 
       return res.status(200).json({ data: users });
     } catch (err) {

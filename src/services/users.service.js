@@ -29,7 +29,7 @@ export class UsersService {
     );
     if (!passwordMatch) throw new Error("비밀번호가 일치하지 않습니다.");
 
-    const accessToken = jwt.sign({ userId: user.userId }, "token-Secret-Key", {
+    const accessToken = jwt.sign({ userId: user.userId }, "secret-key", {
       expiresIn: "12h",
     });
     const refreshToken = jwt.sign({ userId: user.userId }, "resumeToken", {
@@ -43,10 +43,10 @@ export class UsersService {
   };
 
   getUser = async (userId) => {
-    const user = await this.usersRepository.getUserInfo(userId);
+    const users = await this.usersRepository.getUserInfo(userId);
     return {
-      email: user.email,
-      name: user.name,
+      email: users.email,
+      name: users.name,
     };
   };
 }

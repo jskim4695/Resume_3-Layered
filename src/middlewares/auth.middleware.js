@@ -14,7 +14,7 @@ export default async function (req, res, next) {
       throw new Error("토큰 타입이 Bearer 형식이 아닙니다.");
 
     // 12h의 유효기간이 남아있는가?
-    const token = jwt.verify(tokenValue, "token-Secret-key");
+    const token = jwt.verify(tokenValue, "secret-key");
 
     const user = await prisma.users.findFirst({
       where: { userId: token.userId },
@@ -48,7 +48,7 @@ export default async function (req, res, next) {
 //     if (tokenType !== "Bearer")
 //       throw new Error("토큰 타입이 Bearer 형식이 아닙니다.");
 
-//     const decodedToken = jwt.verify(token, "token-Secret-Key");
+//     const decodedToken = jwt.verify(token, "secret-key");
 //     const userId = decodedToken.userId;
 //     if (!userId) throw new Error("로그인이 필요합니다.");
 
