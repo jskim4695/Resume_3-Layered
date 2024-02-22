@@ -2,8 +2,10 @@ import { prisma } from "../utils/prisma/index.js";
 import bcrypt from "bcrypt";
 
 export class UsersRepository {
+  userRepository = new UsersRepository();
+
   selectOneUserbyClientId = async (clientId) => {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
         clientId,
       },
@@ -11,7 +13,7 @@ export class UsersRepository {
   };
 
   selectOneUserbyEmail = async (email) => {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
         email,
       },
@@ -19,7 +21,7 @@ export class UsersRepository {
   };
 
   selectOneUserbyEmailAndPassword = async (email, password) => {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
         email,
         password,
@@ -28,7 +30,7 @@ export class UsersRepository {
   };
 
   createUser = async (date) => {
-    await prisma.user.create({
+    await prisma.users.create({
       data,
     });
   };

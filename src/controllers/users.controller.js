@@ -1,7 +1,7 @@
-import { UsersService, usersService } from "../services/users.service.js";
+import { usersService } from "../services/users.service.js";
 
 export class UsersController {
-  usersService = new UsersService();
+  usersController = new UsersController();
 
   userSignUp = async (req, res, next) => {
     const { email, clientId, password, passwordConfirm, name, grade } =

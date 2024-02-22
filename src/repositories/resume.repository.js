@@ -4,6 +4,9 @@ export class ResumeRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
+
+  resumeRepository = new ResumeRepository();
+
   selectAllSortedResumes = async (sort) => {
     const resumes = await prisma.resume.findMany({
       select: {

@@ -1,6 +1,7 @@
 import { resumeRepository } from "../repositories/resume.repository";
 
 export class ResumeService {
+  resumeService = new ResumeService();
   // 이력서 조회
   findAllSortedResumes = async (sort) => {
     const resumes = await resumeRepository.selectAllSortedResumes(sort);

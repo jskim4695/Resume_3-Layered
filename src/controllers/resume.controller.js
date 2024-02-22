@@ -1,7 +1,7 @@
-import { jwt } from "jsonwebtoken";
 import { resumeService } from "../services/resume.service";
 
 export class ResumeController {
+  resumeController = new ResumeController();
   // 이력서 조회 api
   getResumes = async (req, res, next) => {
     const orderKey = req.query.orderKey ?? "resumeId";

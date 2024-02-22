@@ -1,10 +1,12 @@
 import AuthService from "../services/auth.service";
 
-const generateNewAccessTokenByFreshToken = async (req, res) => {
-  const { refreshToken } = req.body;
+export class AuthController {
+  authController = new AuthController();
 
-  const token = await AuthService.verifyFreshToken(refreshToken);
-  return res.json(token);
-};
+  generateNewAccessTokenByFreshToken = async (req, res) => {
+    const { refreshToken } = req.body;
 
-export default router;
+    const token = await AuthService.verifyFreshToken(refreshToken);
+    return res.json(token);
+  };
+}
