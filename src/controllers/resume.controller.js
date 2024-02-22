@@ -1,83 +1,156 @@
+import { jwt } from "jsonwebtoken";
+import { resumeService } from "../services/resume.service";
+
 export class ResumeController {
-  constructor(resumeService) {
-    this.resumeService = resumeService;
-  }
   // 이력서 조회 api
   getResumes = async (req, res, next) => {
-    try {
-      const resumes = await this.resumeService.findAllResume();
+    const orderKey = req.query.orderKey ?? "resumeId";
+    const orderValue = req.query.orderValue ?? "desc";
 
-      return res.status(200).json({ data: resumes });
-    } catch (err) {
-      next(err);
+    if (!["resumeId", "status"].includes(orderKey)) {
+      return res.status(400).json({
+        success: false,
+        message: "orderKey 가 올바르지 않습니다.",
+      });
     }
+
+    if (!["asc", "desc"].includes(orderValue.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: "orderValue 가 올바르지 않습니다.",
+      });
+    }
+
+    resumes = await resumeService.findAllSortedResumes({
+      orderKey,
+      orderValue: orderValue.toLowerCase(),
+    });
+
+    return res.json({ data: resumes });
   };
 
   // 이력서 상세 조회
   getResumeById = async (req, res, next) => {
-    try {
-      const { resumeId } = req.params;
-
-      const resume = await this.resumeService.findResumeById(resumeId);
-
-      return res.status(200).json({ data: resume });
-    } catch (err) {
-      next(err);
+    const resumeId = req.params.resumeId;
+    if (!resumeId) {
+      return res.status(400).json({
+        success: false,
+        message: "resumeId는 필수값입니다.",
+      });
     }
+
+    const resume = await resumeService.findResumeById(resumeId);
+
+    if (!resume) {
+      return res.json({ data: {} });
+    }
+
+    return res.json({ data: resume });
   };
 
   // 이력서 생성
   createResume = async (req, res, next) => {
-    try {
-      const userId = res.locals.user.userId;
-      const { title, content } = req.body;
-
-      const createdResume = await this.resumeService.crateResume(
-        userId,
-        title,
-        content
-      );
-
-      return res.status(201).json({ data: createdResume });
-    } catch (err) {
-      next(err);
+    const userId = res.locals.user;
+    const { title, content } = req.body;
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "이력서 제목은 필수값 입니다",
+      });
     }
+
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        message: "자기소개는 필수값 입니다",
+      });
+    }
+
+    await resumeService.createResume({
+      title,
+      content,
+      userId,
+    });
+
+    return res.status(201).end();
   };
 
   // 이력서 수정
   updateResume = async (req, res, next) => {
-    try {
-      const userId = res.locals.user.userId;
-      const resumeId = req.params;
-      const { title, content, status } = req.body;
+    const user = res.locals.user;
+    const resumeId = req.params.resumeId;
+    const { title, content, status } = req.body;
 
-      const updatedResume = await this.resumeService.updateResume(
-        resumeId,
+    if (!resumeId) {
+      return res.status(400).json({
+        success: false,
+        message: "resumeId 는 필수값입니다",
+      });
+    }
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "이력서 제목은 필수값입니다",
+      });
+    }
+
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        message: "자기소개는 필수값입니다",
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "상태값은 필수값입니다",
+      });
+    }
+
+    // status 는 존재
+    if (
+      ![
+        "APPLY",
+        "DROP",
+        "PASS",
+        "INTERVIEW1",
+        "INTERVIEW2",
+        "FINAL_PASS",
+      ].includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "올바르지 않은 상태값 입니다.",
+      });
+    }
+
+    await resumeService.updateResumeByResumeId(
+      resumeId,
+      {
         title,
         content,
-        status
-      );
+        status,
+      },
+      user
+    );
 
-      return res.status(200).json({ data: updatedResume });
-    } catch (err) {
-      next(err);
-    }
-  };
+    // 이력서 삭제 api
+    deleteResume = async (req, res, next) => {
+      const user = res.locals.user;
+      const resumeId = req.params.resumeId;
 
-  // 이력서 삭제 api
-  deleteResume = async (req, res, next) => {
-    try {
-      const userId = res.locals.user.userId;
-      const { resumeId } = req.params;
+      if (!resumeId) {
+        return res.status(400).json({
+          success: false,
+          message: "resumeId 는 필수값입니다",
+        });
+      }
 
-      const deletedResume = await this.resumeService.deleteResume(
-        userId,
-        resumeId
-      );
+      await resumeService.deleteResumeByResumeId(resumeId, user);
 
-      return res.status(200).json({ data: deletedResume });
-    } catch (err) {
-      next(err);
-    }
+      return res.status(201).end();
+    };
   };
 }

@@ -1,46 +1,77 @@
-import { UsersService } from "../services/users.service.js";
+import { UsersService, usersService } from "../services/users.service.js";
 
 export class UsersController {
   usersService = new UsersService();
 
   userSignUp = async (req, res, next) => {
-    try {
-      const { email, password, checkPw, name } = req.body;
-
-      const createdUsers = await this.usersService.createUsers(
-        email,
-        password,
-        checkPw,
-        name
-      );
-
-      return res.status(201).json({ data: createdUsers });
-    } catch (err) {
-      next(err);
+    const { email, clientId, password, passwordConfirm, name, grade } =
+      req.body;
+    if (grade && !["user", "admin"].includes(grade)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "등급이 올바르지 않습니다." });
     }
+
+    if (!clientId) {
+      if (!email) {
+        return res
+          .status(400)
+          .json({ success: false, message: "이메일은 필수값입니다." });
+      }
+
+      if (!password) {
+        return res
+          .status(400)
+          .json({ success: false, message: "비밀번호는 필수값입니다." });
+      }
+
+      if (!passwordConfirm) {
+        return res
+          .status(400)
+          .json({ success: false, message: "비밀번호 확인은 필수값입니다." });
+      }
+
+      if (password.length < 6) {
+        return res
+          .status(400)
+          .json({ success: false, message: "비밀번호는 최소 6자 이상입니다." });
+      }
+
+      if (password !== passwordConfirm) {
+        return res.status(400).json({
+          success: false,
+          message: "비밀번호와 비밀번호 확인값이 일치하지 않습니다.",
+        });
+      }
+    }
+
+    if (!name) {
+      return res
+        .status(400)
+        .json({ success: false, message: "이름은 필수값입니다." });
+    }
+
+    await usersService.userSignUp({ email, clientId, password, name, grade });
+
+    return res.status(201).json({
+      email,
+      name,
+    });
   };
 
   userSignIn = async (req, res, next) => {
-    try {
-      const { email, password } = req.body;
+    const { clientId, email, password } = req.body;
 
-      const tokens = await this.usersService.loginUsers(email, password);
-
-      return res.status(200).json({ tokens });
-    } catch (err) {
-      next(err);
-    }
+    const token = await usersService.userSignIn(clientId, email, password);
+    return res.json(token);
   };
 
   getUser = async (req, res, next) => {
-    try {
-      const user = res.locals.user;
+    const user = res.locals.user;
 
-      const users = await this.usersService.getUser(user.userId);
-
-      return res.status(200).json({ data: users });
-    } catch (err) {
-      next(err);
-    }
+    return res.json({
+      email: user.email,
+      name: user.name,
+    });
   };
 }
