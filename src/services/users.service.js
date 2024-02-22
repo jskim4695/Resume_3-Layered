@@ -1,52 +1,101 @@
-import { UsersRepository } from "../repositories/users.repository.js";
+import { usersRepository } from "../repositories/users.repository.js";
+import sha256 from "cypto-js/sha256";
 import jwt from "jsonwebtoken";
 
 export class UsersService {
   usersRepository = new UsersRepository();
 
-  createUsers = async (email, password, checkPw, name) => {
-    const createdUsers = await this.usersRepository.registerUsers(
-      email,
-      password,
-      checkPw,
-      name
-    );
+  userSignUp = async (data) => {
+    const { email, clientId, password, name, grade } = data;
 
-    return {
-      email: createdUsers.email,
-      name: createdUsers.name,
-      createdAt: createdUsers.createdAt,
-    };
+    // clientId (kakao)
+    if (clientId) {
+      const user = await usersRepository.selectOneUserbyClientId(clientId);
+
+      if (user) {
+        throw {
+          code: 400,
+          message: "이미 가입된 사용자 입니다.",
+        };
+      }
+
+      await usersRepository.createUser({
+        clientId,
+        name,
+        grade,
+      });
+    } else {
+      // email
+      const user = await usersRepository.selectOneUserbyEmail(email);
+
+      if (user) {
+        throw {
+          code: 400,
+          message: "이미 가입된 이메일 입니다.",
+        };
+      }
+
+      await await usersRepository.createUser({
+        email,
+        password: sha256(password).toString(),
+        name,
+        grade,
+      });
+    }
   };
 
-  loginUsers = async (email, password) => {
-    const user = await this.usersRepository.findUserByEmail(email);
-    if (!user) throw new Error("존재하지 않는 이메일입니다.");
+  userSignIn = async ({ clientId, email, password }) => {
+    let user;
+    if (clientId) {
+      // 카카오 로그인
+      user = await usersRepository.selectOneUserbyClientId(clientId);
 
-    const passwordMatch = await this.usersRepository.comparePassword(
-      password,
-      user.password
-    );
-    if (!passwordMatch) throw new Error("비밀번호가 일치하지 않습니다.");
+      if (!user) {
+        throw {
+          code: 401,
+          message: "올바르지 않은 로그인 정보입니다.",
+        };
+      }
+    } else {
+      // email 로그인
+      if (!email) {
+        throw {
+          code: 400,
+          message: "이메일은 필수값입니다.",
+        };
+      }
 
-    const accessToken = jwt.sign({ userId: user.userId }, "secret-key", {
+      if (!password) {
+        throw {
+          code: 400,
+          message: "비밀번호는 필수값입니다.",
+        };
+      }
+
+      user = await usersRepository.selectOneUserbyEmailAndPassword(
+        email,
+        password
+        // TODO 수정필요
+      );
+
+      if (!user) {
+        throw {
+          code: 401,
+          message: "올바르지 않은 로그인 정보입니다.",
+        };
+      }
+    }
+
+    // 로그인 성공
+    const accessToken = jwt.sign({ userId: user.userId }, "resume@#", {
       expiresIn: "12h",
     });
-    const refreshToken = jwt.sign({ userId: user.userId }, "resumeToken", {
+    const refreshToken = jwt.sign({ userId: user.userId }, "resume&%*", {
       expiresIn: "7d",
     });
-
     return {
       accessToken,
       refreshToken,
-    };
-  };
-
-  getUser = async (userId) => {
-    const users = await this.usersRepository.getUserInfo(userId);
-    return {
-      email: users.email,
-      name: users.name,
     };
   };
 }

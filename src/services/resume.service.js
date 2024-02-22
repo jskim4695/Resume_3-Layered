@@ -1,81 +1,78 @@
+import { resumeRepository } from "../repositories/resume.repository";
+
 export class ResumeService {
-  constructor(resumeRepository) {
-    this.resumeRepository = resumeRepository;
-  }
-
   // 이력서 조회
-  findAllResume = async () => {
-    const resumes = await this.resumeRepository.findAllResume();
-
-    resumes.sort((a, b) => {
-      return b.createdAt - a.createdAt;
-    });
-
-    return resumes.map((resume) => {
-      return {
-        resumeId: resume.resumeId,
-        title: resume.title,
-        status: resume.status,
-        createdAt: resume.status,
-      };
-    });
+  findAllSortedResumes = async (sort) => {
+    const resumes = await resumeRepository.selectAllSortedResumes(sort);
+    return resumes;
   };
   // 이력서 상세 조회
   findResumeById = async (resumeId) => {
-    const resume = await this.resumeRepository.findResumeById(resumeId);
+    const resumes = await resumeRepository.selectOneResumeByResumeId(resumeId);
+    return resumes;
 
-    return {
-      resumeId: resume.resumeId,
-      title: resume.title,
-      content: resume.content,
-      status: resume.status,
-      createdAt: resume.status,
-    };
+    // const resume = await this.resumeRepository.findResumeById(resumeId);
+
+    // return {
+    //   resumeId: resume.resumeId,
+    //   title: resume.title,
+    //   content: resume.content,
+    //   status: resume.status,
+    //   createdAt: resume.status,
+    // };
   };
 
-  crateResume = async (userId, title, content) => {
-    const createdResume = await this.resumeRepository.createResume(
-      userId,
+  crateResume = async (title, content, userId) => {
+    await resumeRepository.createResume({
       title,
-      content
-    );
-
-    return {
-      resumeId: createdResume.resumeId,
-      userId: createdResume.userId,
-      title: createdResume.title,
-      content: createdResume.content,
-      status: createdResume.status,
-      createdAt: createdResume.createdAt,
-    };
+      content,
+      status: "APPLY",
+      userId,
+    });
   };
 
-  updateResume = async (resumeId, title, content, status) => {
-    const resume = await this.resumeRepository.findResumeById(resumeId);
+  updateResumeByResumeId = async (resumeId, data, byUser) => {
+    const resume = await resumeRepository.selectOneResumeByResumeId(resumeId);
 
-    await this.resumeRepository.updateResume(resumeId, title, content, status);
+    if (!resume) {
+      throw {
+        code: 401,
+        message: "존재하지 않는 이력서 입니다.",
+      };
+    }
 
-    const updatedResume = await this.resumeRepository.findResumeById(resumeId);
+    if (byUser.grade === "user" && resume.userId !== byUser.userId) {
+      throw {
+        code: 401,
+        message: "올바르지 않은 요청입니다.",
+      };
+    }
 
-    return {
-      resumeId: updatedResume.resumeId,
-      title: updatedResume.title,
-      content: updatedResume.content,
-      status: updatedResume.status,
-    };
+    const { title, content, status } = data;
+    await resumeRepository.updateResumeByResumeId(resumeId, {
+      title,
+      content,
+      status,
+    });
   };
 
-  deleteResume = async (userId, resumeId) => {
-    const resume = await this.resumeRepository.findResumeById(resumeId);
-    if (!resume) throw new Error("존재하지 않는 이력서입니다.");
+  deleteResumeByResumeId = async (resumeId, byUser) => {
+    const resume = await resumeRepository.selectOneResumeByResumeId(resumeId);
 
-    await this.resumeRepository.deleteResume(userId, resumeId);
+    if (!resume) {
+      throw {
+        code: 400,
+        message: "존재하지 않는 이력서 입니다.",
+      };
+    }
 
-    return {
-      resumeId: resume.resumeId,
-      title: resume.title,
-      content: resume.content,
-      createdAt: resume.createdAt,
-    };
+    if (resume.userId !== byUser.userId) {
+      throw {
+        code: 400,
+        message: "올바르지 않은 요청입니다.",
+      };
+    }
+
+    await resumeRepository.deleteResumeByResumeId(resumeId);
   };
 }
